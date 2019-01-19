@@ -14,17 +14,22 @@ def train(rank, args, model):
                         transforms.Normalize((0.1307,), (0.3081,))
                     ])),
         batch_size=args.batch_size, shuffle=True, num_workers=1)
-    test_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('../data', train=False, transform=transforms.Compose([
-                        transforms.ToTensor(),
-                        transforms.Normalize((0.1307,), (0.3081,))
-                    ])),
-        batch_size=args.batch_size, shuffle=True, num_workers=1)
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     for epoch in range(1, args.epochs + 1):
         train_epoch(epoch, args, model, train_loader, optimizer)
-        test_epoch(model, test_loader)
+
+def test(args, model):
+    torch.manual_seed(args.seed)
+
+    test_loader = torch.utils.data.DataLoader(
+        datasets.MNIST('../data', train=False, transform=transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+        ])),
+        batch_size=args.batch_size, shuffle=True, num_workers=1)
+
+    test_epoch(model, test_loader)
 
 
 def train_epoch(epoch, args, model, data_loader, optimizer):
@@ -49,7 +54,7 @@ def test_epoch(model, data_loader):
     with torch.no_grad():
         for data, target in data_loader:
             output = model(data)
-            test_loss += F.nll_loss(output, target, size_average=False).item() # sum up batch loss
+            test_loss += F.nll_loss(output, target, reduction='sum').item() # sum up batch loss
             pred = output.max(1)[1] # get the index of the max log-probability
             correct += pred.eq(target).sum().item()
 
